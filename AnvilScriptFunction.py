@@ -2,53 +2,65 @@ import cv2
 import keyboard
 import pyautogui
 import time
+import mss
+from pyscreenshot.plugins.msswrap import sct
 
 #Removed the other methods as one is enough. Tested it multiple times and it worked fine
 methods = [cv2.TM_CCOEFF]
-#Added this to see if the script actually worked
-pyautogui.moveTo(500, 500, duration=0.5)
 
+def templateMatching(templateImg):
 
-def templateMatching(baseImg, templateImg):
-    #Tried to implement a hotkey for closing the script
-    keyboard.add_hotkey('esc', lambda: exit(0))
+    with mss.mss() as sct:
+        # The screen part to capture
+        monitor = {"top": 0, "left": 0, "width": 1920, "height": 1080}
+        output = "assets/test.png"
 
-    img = cv2.imread(baseImg, 0)
-    template = cv2.imread(templateImg, 0)
-    w, h = template.shape
+        # Grab the data
+        sct_img = sct.grab(monitor)
 
-    for method in methods:
-        img2 = img.copy()
-        result = cv2.matchTemplate(img2, template, method)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        # Save to the picture file
+        mss.tools.to_png(sct_img.rgb, sct_img.size, output=output)
 
-        location = max_loc
-        bottom_right = (location[0] + h, location[1] + w)
+        baseImg = cv2.resize(cv2.imread('assets/test.png', 0), (0,0), fx = 0.7, fy = 0.7)
+        template = cv2.resize(cv2.imread(templateImg, 0), (0,0), fx = 0.7, fy = 0.7)
 
-        middle = ((location[0] + bottom_right[0]) / 2, (location[1] + bottom_right[1]) / 2)
+        w, h = template.shape
 
-        middleX = int(middle[0])
-        middleY = int(middle[1])
+        for method in methods:
+            img2 = baseImg.copy()
+            result = cv2.matchTemplate(img2, template, method)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
-        #If you want to see the template matching in action you just uncomment these
-        #cv2.rectangle(img2, location, bottom_right, 255, 5)
-        #cv2.circle(img2, (middleX, middleY), 3, (0,0,255), -1)
+            location = max_loc
+            bottom_right = (location[0] + h, location[1] + w)
 
-        #and this
-        #cv2.imshow('Match', img2)
+            middle = ((location[0] + bottom_right[0]) / 2, (location[1] + bottom_right[1]) / 2)
 
-        #the +150 and +100 was after playing around. When I just used middleX and middleY,
-        #the cursor missed the rectangle
-        pyautogui.moveTo(middleX+150, middleY+100, duration=0.25)
-        pyautogui.leftClick
+            middleX = int(middle[0])
+            middleY = int(middle[1])
 
-        #and this
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
+            #If you want to see the template matching in action you just uncomment these
+            cv2.rectangle(img2, location, bottom_right, 255, 5)
+            cv2.circle(img2, (middleX, middleY), 3, (0,0,255), -1)
+
+            #and this
+            cv2.imshow('Match', img2)
+
+            #the +10 and +40 was after playing around. When I just used middleX and middleY,
+            #the cursor missed the rectangle. Will probably need more refining once I try it with the game
+            pyautogui.moveTo(middleX+10, middleY+40, duration=0.25)
+            pyautogui.leftClick()
+            time.sleep(1)
+
+            #and this
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 #Made a seperate function for implementing scrolling the mousewheel when finding the bullet
-def templateMatchingBullet(baseImg, templateImg):
+def templateMatchingBullet(templateImg):
     keyboard.add_hotkey('esc', lambda: exit(0))
+
+    baseImg = sct.shot(output='baseImg.png')
 
     img = cv2.imread(baseImg, 0)
     template = cv2.imread(templateImg, 0)
@@ -87,9 +99,10 @@ def templateMatchingBullet(baseImg, templateImg):
         #cv2.destroyAllWindows()
 
 #Tried adding a sleep timer so I had time to open Idleon after starting the script
-time.sleep(5)
+time.sleep(3)
 
-templateMatching('assets/w1town.png','assets/w1anvil.png')
-templateMatching('assets/anvilscreen.png','assets/anviltab2.png')
-templateMatchingBullet('assets/anviltabbullet.png','assets/bullet1.png')
-templateMatching('assets/bulletcrafting.png','assets/craft.png')
+
+templateMatching('assets/w1anvil.png')
+templateMatching('assets/anviltab2.png')
+#templateMatchingBullet('assets/bullet1.png')
+templateMatching('assets/craft.png')
